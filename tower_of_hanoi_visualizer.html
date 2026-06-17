@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower of Hanoi Recursive Visualizer</title>
+    <!-- Tailwind CSS for high-fidelity UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-10 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Tower of Hanoi</h1>
+                    <p class="text-xs text-slate-400">Recursive Execution Tree & Visual State Machine</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                <label class="text-xs text-slate-400 font-medium px-2">Disks:</label>
+                <select id="disk-select" class="bg-slate-800 text-slate-100 border border-slate-700 rounded px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                    <option value="2">2 Disks (3 moves)</option>
+                    <option value="3" selected>3 Disks (7 moves)</option>
+                    <option value="4">4 Disks (15 moves)</option>
+                    <option value="5">5 Disks (31 moves)</option>
+                </select>
+                <button id="reset-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded px-3 py-1 text-sm transition-all flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 12H16" /></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Visualizer Canvas & Controls (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Hanoi Animation Canvas Card -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-transparent pointer-events-none"></div>
+                
+                <!-- Status & Active Parameters Badge -->
+                <div class="flex justify-between items-start mb-4 z-10">
+                    <div>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400 bg-indigo-950/60 px-2.5 py-1 rounded-full border border-indigo-800/50">Live Environment</span>
+                    </div>
+                    <div id="call-params" class="text-right flex flex-col items-end">
+                        <span class="text-xs text-slate-400">Current Call State:</span>
+                        <span class="font-mono text-sm text-cyan-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800 mt-1">
+                            towerOfHanoi(<span id="param-n">3</span>, '<span id="param-from">A</span>', '<span id="param-to">C</span>', '<span id="param-aux">B</span>')
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Rods & Disks Container -->
+                <div class="flex justify-around items-end h-48 w-full relative mb-6">
+                    <!-- Rod A -->
+                    <div class="flex flex-col items-center w-1/3 h-full justify-end relative cursor-pointer group" onclick="highlightRod('A')">
+                        <div class="w-3 h-36 bg-slate-700 group-hover:bg-indigo-500 rounded-full transition-all absolute bottom-2 shadow-inner"></div>
+                        <div id="rod-A-container" class="w-full flex flex-col-reverse items-center z-10 pb-2 gap-1 px-4 min-h-[144px]">
+                            <!-- Disks will render here dynamically -->
+                        </div>
+                        <div class="w-24 h-4 bg-slate-800 border-b border-slate-700 rounded-md z-20 flex items-center justify-center text-[10px] font-bold text-slate-400">ROD A</div>
+                    </div>
+
+                    <!-- Rod B -->
+                    <div class="flex flex-col items-center w-1/3 h-full justify-end relative cursor-pointer group" onclick="highlightRod('B')">
+                        <div class="w-3 h-36 bg-slate-700 group-hover:bg-indigo-500 rounded-full transition-all absolute bottom-2 shadow-inner"></div>
+                        <div id="rod-B-container" class="w-full flex flex-col-reverse items-center z-10 pb-2 gap-1 px-4 min-h-[144px]">
+                            <!-- Disks will render here dynamically -->
+                        </div>
+                        <div class="w-24 h-4 bg-slate-800 border-b border-slate-700 rounded-md z-20 flex items-center justify-center text-[10px] font-bold text-slate-400">ROD B</div>
+                    </div>
+
+                    <!-- Rod C -->
+                    <div class="flex flex-col items-center w-1/3 h-full justify-end relative cursor-pointer group" onclick="highlightRod('C')">
+                        <div class="w-3 h-36 bg-slate-700 group-hover:bg-indigo-500 rounded-full transition-all absolute bottom-2 shadow-inner"></div>
+                        <div id="rod-C-container" class="w-full flex flex-col-reverse items-center z-10 pb-2 gap-1 px-4 min-h-[144px]">
+                            <!-- Disks will render here dynamically -->
+                        </div>
+                        <div class="w-24 h-4 bg-slate-800 border-b border-slate-700 rounded-md z-20 flex items-center justify-center text-[10px] font-bold text-slate-400">ROD C</div>
+                    </div>
+                </div>
+
+                <!-- Simulation Info Message Bar -->
+                <div id="explanation-box" class="bg-slate-950/80 border border-slate-800/80 rounded-xl p-3 text-sm text-slate-300 min-h-[50px] flex items-center gap-3">
+                    <div class="p-1 rounded-full bg-cyan-950 text-cyan-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <span id="explanation-text" class="leading-relaxed">Click play or step forward to watch the recursive moves perform.</span>
+                </div>
+            </div>
+
+            <!-- Playback Controls Panel -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col gap-4 shadow-lg">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-2">
+                        <!-- Step Back -->
+                        <button id="prev-btn" class="p-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 border border-slate-700 rounded-lg transition-all" title="Previous Step">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg>
+                        </button>
+                        <!-- Play / Pause -->
+                        <button id="play-btn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-lg shadow-indigo-600/35 flex items-center gap-2 transition-all">
+                            <svg id="play-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+                            <span id="play-text">Auto Play</span>
+                        </button>
+                        <!-- Step Forward -->
+                        <button id="next-btn" class="p-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 border border-slate-700 rounded-lg transition-all" title="Next Step">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.934 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.334-4zM19.934 12.8a1 1 0 000-1.6l-5.334-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.334-4z" /></svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Progress Metrics -->
+                    <div class="flex items-center gap-4 text-xs font-medium text-slate-400 bg-slate-950 px-4 py-2.5 rounded-lg border border-slate-800">
+                        <div>Step: <span id="current-step-label" class="text-indigo-400 font-bold">0</span> / <span id="total-steps-label">7</span></div>
+                        <div class="w-px h-4 bg-slate-800"></div>
+                        <div>Total Moves: <span id="move-counter-label" class="text-cyan-400 font-bold">0</span></div>
+                    </div>
+                </div>
+
+                <!-- Simulation Speed Slider -->
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-slate-400 min-w-[70px]">Speed:</span>
+                    <input id="speed-slider" type="range" min="300" max="2500" value="1200" step="100" class="flex-grow accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <span id="speed-label" class="text-xs font-mono text-slate-400 min-w-[45px] text-right">1.2s</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Execution Call Log -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3 shadow-lg flex-grow min-h-[220px]">
+                <h3 class="text-sm font-bold text-slate-300 border-b border-slate-800 pb-2 flex justify-between items-center">
+                    <span>Call Trace History</span>
+                    <span class="text-xs text-slate-500 font-normal">Step-by-step active calls</span>
+                </h3>
+                <div id="call-stack-logs" class="flex-grow overflow-y-auto max-h-[220px] text-xs space-y-1.5 font-mono pr-2">
+                    <!-- Steps logs populated here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Interactive Code Inspector & Rules (5 Cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Explanatory Guide Box -->
+            <div class="bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-indigo-500/20 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-base font-bold text-indigo-300 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                    Understanding Parameter Swapping
+                </h2>
+                <div class="text-sm text-slate-300 space-y-3 leading-relaxed">
+                    <p>The core puzzle calls itself dynamically like this: </p>
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs text-indigo-400 code-font">
+                        towerOfHanoi(n - 1, from, aux, to);
+                    </div>
+                    <p>Notice the parameter positions shifted! This is because to move $n-1$ disks out of the way, you temporarily designate the <span class="text-emerald-400 font-semibold">Auxiliary</span> rod as the target destination and use the <span class="text-rose-400 font-semibold">To</span> rod as the temporary helper.</p>
+                </div>
+            </div>
+
+            <!-- Code Highlighting Section -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-lg flex-grow flex flex-col">
+                <h3 class="text-sm font-bold text-slate-300 border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span>Active C Code Inspector</span>
+                        <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30 uppercase tracking-wider font-bold">Editable</span>
+                    </div>
+                    <span class="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded border border-slate-700 font-mono">tower.c</span>
+                </h3>
+                
+                <div contenteditable="true" spellcheck="false" class="flex-grow overflow-x-auto code-font text-xs leading-6 bg-slate-950 p-4 rounded-xl border border-slate-800/80 relative focus:outline-none focus:ring-1 focus:ring-indigo-500/50 caret-indigo-400 transition-all cursor-text">
+                    <!-- Code Blocks with IDs to enable visual line highlights -->
+                    <div id="code-line-0" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">1</span><span class="text-pink-500">int</span> <span class="text-blue-400">towerOfHanoi</span>(<span class="text-pink-500">int</span> n, <span class="text-pink-500">char</span> from, <span class="text-pink-500">char</span> to, <span class="text-pink-500">char</span> aux) {</div>
+                    <div id="code-line-1" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">2</span>    <span class="text-pink-500">if</span> (n == <span class="text-violet-400">1</span>) {</div>
+                    <div id="code-line-2" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">3</span>        <span class="text-blue-400">printf</span>(<span class="text-amber-200">"Move disk 1 from %c to %c\n"</span>, from, to);</div>
+                    <div id="code-line-3" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">4</span>        <span class="text-pink-500">return</span> <span class="text-violet-400">1</span>; <span class="text-slate-500">// base case completed</span></div>
+                    <div id="code-line-4" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">5</span>    }</div>
+                    <div id="code-line-5" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">6</span>    <span class="text-slate-500">// Step A: Move top n-1 disks from source to aux</span></div>
+                    <div id="code-line-6" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">7</span>    <span class="text-pink-500">int</span> count = <span class="text-blue-400">towerOfHanoi</span>(n - <span class="text-violet-400">1</span>, from, aux, to);</div>
+                    <div id="code-line-7" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">8</span>    </div>
+                    <div id="code-line-8" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">9</span>    <span class="text-slate-500">// Step B: Move the largest disk directly to 'to'</span></div>
+                    <div id="code-line-9" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">10</span>    <span class="text-blue-400">printf</span>(<span class="text-amber-200">"Move disk %d from %c to %c\n"</span>, n, from, to);</div>
+                    <div id="code-line-10" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">11</span>    count += <span class="text-violet-400">1</span>;</div>
+                    <div id="code-line-11" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">12</span>    </div>
+                    <div id="code-line-12" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">13</span>    <span class="text-slate-500">// Step C: Move n-1 auxiliary disks to 'to'</span></div>
+                    <div id="code-line-13" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">14</span>    count += <span class="text-blue-400">towerOfHanoi</span>(n - <span class="text-violet-400">1</span>, aux, to, from);</div>
+                    <div id="code-line-14" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">15</span>    <span class="text-pink-500">return</span> count;</div>
+                    <div id="code-line-15" class="px-2 rounded border border-transparent transition-all"><span contenteditable="false" class="text-slate-600 mr-4 select-none inline-block w-4 text-right">16</span>}</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            Designed for interactive programming education. Feel free to download, edit, and explore.
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // Storage configuration fallback defaults
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-hanoi-id';
+
+        // Disk setup config
+        let diskCount = 3;
+        let animationSteps = [];
+        let currentStepIndex = 0;
+        let playInterval = null;
+        let moveCounter = 0;
+
+        // Interactive Visualizer Dom Elements
+        const diskSelect = document.getElementById('disk-select');
+        const resetBtn = document.getElementById('reset-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const playBtn = document.getElementById('play-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedLabel = document.getElementById('speed-label');
+        const callStackLogs = document.getElementById('call-stack-logs');
+        const explanationText = document.getElementById('explanation-text');
+        
+        const rodAContainer = document.getElementById('rod-A-container');
+        const rodBContainer = document.getElementById('rod-B-container');
+        const rodCContainer = document.getElementById('rod-C-container');
+
+        // State parameters text
+        const paramN = document.getElementById('param-n');
+        const paramFrom = document.getElementById('param-from');
+        const paramTo = document.getElementById('param-to');
+        const paramAux = document.getElementById('param-aux');
+
+        // Playback parameters
+        let speed = 1200;
+
+        // Custom palette configurations for disk rendering
+        const diskColors = [
+            'from-rose-500 to-pink-600 shadow-rose-500/20 border-rose-400',
+            'from-amber-500 to-orange-600 shadow-amber-500/20 border-amber-400',
+            'from-emerald-500 to-teal-600 shadow-emerald-500/20 border-emerald-400',
+            'from-cyan-500 to-blue-600 shadow-cyan-500/20 border-cyan-400',
+            'from-indigo-500 to-violet-600 shadow-indigo-500/20 border-indigo-400'
+        ];
+
+        // Highlight rod click event handler to explain mapping and flash rod line
+        function highlightRod(rodId) {
+            const step = animationSteps[currentStepIndex];
+            if (!step) return;
+            
+            let role = "an inactive helper";
+            if (step.activeParams.from === rodId) role = "the active Source rod (From)";
+            else if (step.activeParams.to === rodId) role = "the target Destination rod (To)";
+            else if (step.activeParams.aux === rodId) role = "the temporary Auxiliary helper (Aux)";
+            
+            explanationText.textContent = `Rod ${rodId} is currently serving as ${role} in this step of the recursion.`;
+            
+            // Find the correct rod container's vertical bar element and apply flash class
+            const containers = { 'A': rodAContainer, 'B': rodBContainer, 'C': rodCContainer };
+            const container = containers[rodId];
+            if (container) {
+                const rodLine = container.previousElementSibling;
+                if (rodLine) {
+                    rodLine.classList.add('bg-indigo-500', 'scale-x-125', 'shadow-[0_0_15px_rgba(99,102,241,0.8)]');
+                    setTimeout(() => {
+                        rodLine.classList.remove('bg-indigo-500', 'scale-x-125', 'shadow-[0_0_15px_rgba(99,102,241,0.8)]');
+                    }, 800);
+                }
+            }
+        }
+
+        // Core Tower of Hanoi State generator
+        // Recursively resolves sequence and generates clean immutable step states
+        function generateHanoiSequence() {
+            const steps = [];
+            
+            // Build absolute initial state arrays
+            const initialRods = {
+                A: Array.from({length: diskCount}, (_, i) => diskCount - i),
+                B: [],
+                C: []
+            };
+
+            // Capture starting placeholder
+            steps.push({
+                rods: JSON.parse(JSON.stringify(initialRods)),
+                activeParams: { n: diskCount, from: 'A', to: 'C', aux: 'B' },
+                highlightLine: 0,
+                movePerformed: null,
+                totalCount: 0,
+                desc: `Initialize puzzle. All ${diskCount} disks stacked in decreasing order on Rod A (Source).`
+            });
+
+            let globalCount = 0;
+
+            function solveHanoi(n, from, to, aux, activeRods) {
+                // Stack record representing function parameter call entry
+                steps.push({
+                    rods: JSON.parse(JSON.stringify(activeRods)),
+                    activeParams: { n, from, to, aux },
+                    highlightLine: 0,
+                    movePerformed: null,
+                    totalCount: globalCount,
+                    desc: `Called recursive function for ${n} disks: move from Rod ${from} to Rod ${to}.`
+                });
+
+                if (n === 1) {
+                    // Record Move of base-case
+                    activeRods[to].push(activeRods[from].pop());
+                    globalCount++;
+                    steps.push({
+                        rods: JSON.parse(JSON.stringify(activeRods)),
+                        activeParams: { n, from, to, aux },
+                        highlightLine: 2,
+                        movePerformed: { disk: 1, from, to },
+                        totalCount: globalCount,
+                        desc: `Base Case (n = 1): Move Disk 1 directly from Rod ${from} to Rod ${to}.`
+                    });
+                    return;
+                }
+
+                // Step A: Move top sub-problem of n-1 disks onto Aux
+                steps.push({
+                    rods: JSON.parse(JSON.stringify(activeRods)),
+                    activeParams: { n, from, to, aux },
+                    highlightLine: 6,
+                    movePerformed: null,
+                    totalCount: globalCount,
+                    desc: `Move the top ${n-1} helper disks out of the way from Rod ${from} to Rod ${aux}.`
+                });
+                solveHanoi(n - 1, from, aux, to, activeRods);
+
+                // Step B: Move bottom largest disk to 'to'
+                activeRods[to].push(activeRods[from].pop());
+                globalCount++;
+                steps.push({
+                    rods: JSON.parse(JSON.stringify(activeRods)),
+                    activeParams: { n, from, to, aux },
+                    highlightLine: 9,
+                    movePerformed: { disk: n, from, to },
+                    totalCount: globalCount,
+                    desc: `Move target Disk ${n} directly from Rod ${from} to destination Rod ${to}.`
+                });
+
+                // Step C: Move subproblem n-1 aux disks to final 'to'
+                steps.push({
+                    rods: JSON.parse(JSON.stringify(activeRods)),
+                    activeParams: { n, from, to, aux },
+                    highlightLine: 13,
+                    movePerformed: null,
+                    totalCount: globalCount,
+                    desc: `Lastly, transfer the ${n-1} helper disks back from auxiliary Rod ${aux} to final destination Rod ${to}.`
+                });
+                solveHanoi(n - 1, aux, to, from, activeRods);
+            }
+
+            // Copy mutable array wrapper inside function context
+            const workingState = JSON.parse(JSON.stringify(initialRods));
+            solveHanoi(diskCount, 'A', 'C', 'B', workingState);
+
+            // Appending successful termination step
+            steps.push({
+                rods: JSON.parse(JSON.stringify(workingState)),
+                activeParams: { n: 0, from: 'A', to: 'C', aux: 'B' },
+                highlightLine: 14,
+                movePerformed: null,
+                totalCount: globalCount,
+                desc: `Algorithm complete! All disks transferred onto target Rod C in ${globalCount} moves.`
+            });
+
+            return steps;
+        }
+
+        // GUI Renderer Utility
+        function drawRodsAndDisks(rods) {
+            const renderRod = (container, contents) => {
+                container.innerHTML = '';
+                contents.forEach((diskSize) => {
+                    const diskEl = document.createElement('div');
+                    // Calculate visual width scaling
+                    const widthPercent = 35 + (diskSize / diskCount) * 55;
+                    const colorClasses = diskColors[diskSize - 1] || 'from-indigo-500 to-indigo-600';
+                    
+                    diskEl.className = `w-[${widthPercent}%] h-6 bg-gradient-to-r ${colorClasses} rounded-md border shadow-lg flex items-center justify-center text-[10px] font-bold text-white transition-all duration-300`;
+                    diskEl.style.width = `${widthPercent}%`;
+                    diskEl.innerHTML = `<span>${diskSize}</span>`;
+                    container.appendChild(diskEl);
+                });
+            };
+
+            renderRod(rodAContainer, rods.A);
+            renderRod(rodBContainer, rods.B);
+            renderRod(rodCContainer, rods.C);
+        }
+
+        // Handle Active Highlight Code Editor Focus
+        function highlightSourceCodeLine(lineNumber) {
+            for (let i = 0; i <= 15; i++) {
+                const row = document.getElementById(`code-line-${i}`);
+                if (!row) continue;
+                if (i === lineNumber) {
+                    row.classList.add('bg-indigo-950/80', 'border-indigo-500/30', 'text-indigo-200');
+                    row.classList.remove('border-transparent');
+                } else {
+                    row.classList.remove('bg-indigo-950/80', 'border-indigo-500/30', 'text-indigo-200');
+                    row.classList.add('border-transparent');
+                }
+            }
+        }
+
+        // Render Call stack trace
+        function rebuildTraceLogs() {
+            callStackLogs.innerHTML = '';
+            
+            // Build the dynamic run history list up to index context
+            for (let idx = 0; idx <= currentStepIndex; idx++) {
+                const step = animationSteps[idx];
+                const row = document.createElement('div');
+                
+                if (step.movePerformed) {
+                    row.className = 'py-1 border-l-2 border-emerald-500 pl-2 bg-slate-900/40 text-slate-300';
+                    row.innerHTML = `<span class="text-emerald-400">► Move:</span> Disk ${step.movePerformed.disk} → [${step.movePerformed.from} to ${step.movePerformed.to}]`;
+                } else {
+                    row.className = 'py-0.5 border-l border-slate-700 pl-2 text-slate-500';
+                    row.innerHTML = `<span>Call:</span> hanoi(${step.activeParams.n}, '${step.activeParams.from}', '${step.activeParams.to}', '${step.activeParams.aux}')`;
+                }
+                callStackLogs.appendChild(row);
+            }
+            callStackLogs.scrollTop = callStackLogs.scrollHeight;
+        }
+
+        // UI Core Synchronizer
+        function applyCurrentStep() {
+            const step = animationSteps[currentStepIndex];
+            
+            drawRodsAndDisks(step.rods);
+            highlightSourceCodeLine(step.highlightLine);
+            
+            // Update Text descriptions
+            explanationText.textContent = step.desc;
+            document.getElementById('current-step-label').textContent = currentStepIndex;
+            document.getElementById('total-steps-label').textContent = animationSteps.length - 1;
+            document.getElementById('move-counter-label').textContent = step.totalCount;
+
+            // Parameter values display
+            paramN.textContent = step.activeParams.n;
+            paramFrom.textContent = step.activeParams.from;
+            paramTo.textContent = step.activeParams.to;
+            paramAux.textContent = step.activeParams.aux;
+
+            // Step buttons disable/enable rules
+            prevBtn.disabled = currentStepIndex === 0;
+            nextBtn.disabled = currentStepIndex === animationSteps.length - 1;
+
+            rebuildTraceLogs();
+        }
+
+        // Autoplay controller loops
+        function stopAutoplay() {
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+            playIcon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />`;
+            playText.textContent = 'Auto Play';
+        }
+
+        function startAutoplay() {
+            if (currentStepIndex === animationSteps.length - 1) {
+                currentStepIndex = 0;
+            }
+
+            playIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />`;
+            playText.textContent = 'Pause';
+
+            playInterval = setInterval(() => {
+                if (currentStepIndex < animationSteps.length - 1) {
+                    currentStepIndex++;
+                    applyCurrentStep();
+                } else {
+                    stopAutoplay();
+                }
+            }, speed);
+        }
+
+        // Initialize state engine
+        function initSimulator() {
+            stopAutoplay();
+            diskCount = parseInt(diskSelect.value);
+            animationSteps = generateHanoiSequence();
+            currentStepIndex = 0;
+            applyCurrentStep();
+        }
+
+        // User Interface Event bindings
+        diskSelect.addEventListener('change', initSimulator);
+        resetBtn.addEventListener('click', initSimulator);
+
+        prevBtn.addEventListener('click', () => {
+            stopAutoplay();
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                applyCurrentStep();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            stopAutoplay();
+            if (currentStepIndex < animationSteps.length - 1) {
+                currentStepIndex++;
+                applyCurrentStep();
+            }
+        });
+
+        playBtn.addEventListener('click', () => {
+            if (playInterval) {
+                stopAutoplay();
+            } else {
+                startAutoplay();
+            }
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            speedLabel.textContent = `${(speed / 1000).toFixed(1)}s`;
+            if (playInterval) {
+                stopAutoplay();
+                startAutoplay();
+            }
+        });
+
+        // Trigger simulator initial loading
+        window.addEventListener('load', () => {
+            initSimulator();
+        });
+    </script>
+</body>
+</html>
